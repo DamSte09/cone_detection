@@ -1,0 +1,9 @@
+# data.yaml
+path: /home/damianek/repos/cone_detection/dataset/
+train: /home/damianek/repos/cone_detection/dataset/images/train
+val: /home/damianek/repos/cone_detection/dataset/images/test
+
+nc: 2 # liczba klas
+names:
+  0: blue cone
+  1: yellow cone
