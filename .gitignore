@@ -1,0 +1,6 @@
+.vscode
+cv-venv
+.venv
+dataset/*
+cones_images
+*.mp4
