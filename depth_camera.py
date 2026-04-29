@@ -1,42 +1,61 @@
-
 import depthai as dai
 import cv2
 
 with dai.Pipeline() as pipeline:
-    cam_left = pipeline.create(dai.node.Camera)
-    cam_right = pipeline.create(dai.node.Camera)
+    # LEFT mono
+    left = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
 
-    cam_left.build(dai.CameraBoardSocket.CAM_B)  # lewa
-    cam_right.build(dai.CameraBoardSocket.CAM_C)  # prawa
+    # RIGHT mono
+    right = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
 
-    out_left = cam_left.requestOutput((640, 400), dai.ImgFrame.Type.GRAY8)
-    out_right = cam_right.requestOutput((640, 400), dai.ImgFrame.Type.GRAY8)
+    # RGB center
+    rgb = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
 
+    # Output queues
+    q_left = left.requestOutput(
+        size=(640, 400), type=dai.ImgFrame.Type.GRAY8, fps=30
+    ).createOutputQueue()
+
+    q_right = right.requestOutput(
+        size=(640, 400), type=dai.ImgFrame.Type.GRAY8, fps=30
+    ).createOutputQueue()
+
+    q_rgb = rgb.requestOutput(
+        size=(1280, 720), type=dai.ImgFrame.Type.BGR888i, fps=30
+    ).createOutputQueue()
+
+    # Start pipeline
+    pipeline.start()
+
+    # Video writers
     fourcc = cv2.VideoWriter_fourcc(*"XVID")
-    writer_left = cv2.VideoWriter("left.avi", fourcc, 30.0, (640, 400))
-    writer_right = cv2.VideoWriter("right.avi", fourcc, 30.0, (640, 400))
 
-    # W v3 Device tworzy się bez pipeline, potem start()
-    with dai.Device() as device:
-        pipeline.start(device)
-        print("Nagrywanie... Naciśnij 'q' aby zatrzymać.")
+    writer_left = cv2.VideoWriter("left.avi", fourcc, 30, (640, 400), False)
+    writer_right = cv2.VideoWriter("right.avi", fourcc, 30, (640, 400), False)
+    writer_rgb = cv2.VideoWriter("rgb.avi", fourcc, 30, (1280, 720), True)
 
-        while pipeline.isRunning():
-            frame_left = out_left.get().getCvFrame()
-            frame_right = out_right.get().getCvFrame()
+    print("Nagrywanie... q = stop")
 
-            frame_left_bgr = cv2.cvtColor(frame_left, cv2.COLOR_GRAY2BGR)
-            frame_right_bgr = cv2.cvtColor(frame_right, cv2.COLOR_GRAY2BGR)
+    while pipeline.isRunning():
+        frame_left = q_left.get().getCvFrame()
+        frame_right = q_right.get().getCvFrame()
+        frame_rgb = q_rgb.get().getCvFrame()
 
-            writer_left.write(frame_left_bgr)
-            writer_right.write(frame_right_bgr)
+        # Save
+        writer_left.write(frame_left)
+        writer_right.write(frame_right)
+        writer_rgb.write(frame_rgb)
 
-            cv2.imshow("Lewy", frame_left)
-            cv2.imshow("Prawy", frame_right)
+        # Preview
+        cv2.imshow("LEFT", frame_left)
+        cv2.imshow("RIGHT", frame_right)
+        cv2.imshow("RGB", frame_rgb)
 
-            if cv2.waitKey(1) == ord("q"):
-                break
+        if cv2.waitKey(1) == ord("q"):
+            break
 
-writer_left.release()
-writer_right.release()
+    writer_left.release()
+    writer_right.release()
+    writer_rgb.release()
+
 cv2.destroyAllWindows()
