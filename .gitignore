@@ -1,6 +1,11 @@
 .vscode
 cv-venv
 .venv
+
 dataset/*
 cones_images
 *.mp4
+.depthai*
+ir_model
+blob
+
